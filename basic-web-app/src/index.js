@@ -5,13 +5,14 @@ require('dotenv').config();
 const app = express();
 const userRoutes = require('./routes/users');
 
-//Middleware
+// Middleware
 app.use(express.json());
+app.use(express.static('public')); // Add this line to serve static files
 
-//Routes
+// Routes
 app.use('/api/users', userRoutes);
 
-// Connect to MongoDDB
+// Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
@@ -19,12 +20,12 @@ mongoose.connect(process.env.MONGODB_URI, {
 .then(() => console.log('Connected to MongoDB'))
 .catch(err => console.error('Could not connect to MongoDB:', err));
 
-// Basic route
+// Update the basic route to serve the HTML file
 app.get('/', (req, res) => {
-    res.json({message: 'Welcome to the API'});
+    res.sendFile('index.html', { root: './public' });
 });
 
-//Start server
+// Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
