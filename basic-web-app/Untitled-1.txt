@@ -1,0 +1,9 @@
+basic-web-app/
+├── src/
+│   ├── models/
+│   ├── routes/
+│   └── index.js
+├── .env
+├── .gitignore
+├── docker-compose.yml
+└── Dockerfile
