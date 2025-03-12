@@ -6,6 +6,7 @@
     <title>User Management Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <!-- Add tab switching styles -->
     <style>
         .fade-in {
             animation: fadeIn 0.5s ease-in;
@@ -30,6 +31,10 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             transition: all 0.3s ease;
         }
+        .tab-active {
+            border-bottom: 2px solid #3B82F6;
+            color: #3B82F6;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -42,7 +47,26 @@
         </div>
     </nav>
 
-    <div class="max-w-6xl mx-auto px-4 py-8">
+    <!-- Add tab navigation -->
+    <!-- Add this button just below the tab navigation -->
+    <div class="max-w-6xl mx-auto px-4 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex space-x-4 border-b">
+                <button onclick="switchTab('card')" id="cardTab" class="px-4 py-2 tab-active">Card View</button>
+                <button onclick="switchTab('table')" id="tableTab" class="px-4 py-2">Table View</button>
+            </div>
+            <button onclick="downloadPDF()" 
+                    class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors duration-300 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586L7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd" />
+                </svg>
+                Download PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- Card View -->
+    <div id="cardView" class="max-w-6xl mx-auto px-4 py-8">
         <div class="grid md:grid-cols-2 gap-8">
             <!-- Form Section -->
             <div class="bg-white rounded-lg shadow-md p-6 slide-in">
@@ -75,9 +99,142 @@
         </div>
     </div>
 
+    <!-- Table View -->
+    <div id="tableView" class="max-w-6xl mx-auto px-4 py-8 hidden">
+        <!-- Add this after your existing tab navigation -->
+        <div class="max-w-6xl mx-auto px-4 py-4">
+            <div class="bg-white rounded-lg shadow-md p-6 slide-in">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">PDF Table Extractor</h2>
+                <form id="pdfForm" class="space-y-4">
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                        <input type="file" id="pdfFile" accept=".pdf" class="hidden" />
+                        <label for="pdfFile" class="cursor-pointer">
+                            <div class="space-y-2">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <div class="text-gray-600">
+                                    Drop your PDF here or click to upload
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors duration-300">
+                        Extract Tables
+                    </button>
+                </form>
+        
+                <!-- Table Preview Section -->
+                <div id="tablePreview" class="mt-8 hidden">
+                    <h3 class="text-lg font-semibold mb-4">Extracted Tables</h3>
+                    <div id="previewContent" class="overflow-x-auto"></div>
+                    <button id="downloadCsv" class="mt-4 bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition-colors duration-300">
+                        Download CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Add this to your existing script section -->
+        <script>
+            // Add the PDF handling functions
+            // Replace the showPreview function with this updated version
+            function showPreview(tables) {
+                const preview = document.getElementById('tablePreview');
+                const content = document.getElementById('previewContent');
+                
+                if (!preview || !content) {
+                    console.error('Preview elements not found');
+                    return;
+                }
+                
+                preview.classList.remove('hidden');
+                
+                if (!tables || tables.length === 0) {
+                    content.innerHTML = '<p class="text-gray-500">No tables found in the PDF</p>';
+                    return;
+                }
+                
+                content.innerHTML = tables.map((table, index) => `
+                    <div class="mb-6">
+                        <h4 class="text-md font-semibold mb-2">Table ${index + 1}</h4>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full table-auto border-collapse border border-gray-200">
+                                ${generateTableHTML(table)}
+                            </table>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Update the form submission handler
+            document.getElementById('pdfForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const fileInput = document.getElementById('pdfFile');
+                
+                if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                    showToast('Please select a PDF file', true);
+                    return;
+                }
+
+                const file = fileInput.files[0];
+                const formData = new FormData();
+                formData.append('pdf', file);
+
+                try {
+                    showLoading('Extracting tables from PDF...');
+                    const response = await fetch('/api/files/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+                    
+                    if (response.ok && data.success) {
+                        showPreview(data.tables);
+                        showToast('Tables extracted successfully!');
+                    } else {
+                        showToast(data.error || 'Failed to extract tables', true);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showToast('Error processing PDF', true);
+                } finally {
+                    hideLoading();
+                }
+            });
+
+            function generateTableHTML(table) {
+                const headers = Object.keys(table[0] || {});
+                return `
+                    <thead class="bg-gray-50">
+                        <tr>
+                            ${headers.map(h => `<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border border-gray-200">${h}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        ${table.map(row => `
+                            <tr>
+                                ${headers.map(h => `<td class="px-6 py-4 whitespace-nowrap border border-gray-200">${row[h]}</td>`).join('')}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                `;
+            }
+        </script>
+    </div>
+
     <!-- Toast Notification -->
     <div id="toast" class="fixed bottom-4 right-4 hidden bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg fade-in">
         User added successfully!
+    </div>
+
+    <!-- Add this loading spinner div after your toast notification -->
+    <div id="loadingSpinner" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white p-5 rounded-lg flex items-center space-x-3">
+            <div class="animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+            <span class="text-gray-700">Generating PDF...</span>
+        </div>
     </div>
 
     <script>
@@ -121,13 +278,57 @@
             }, 3000);
         }
 
+        // Add delete function
+        async function deleteUser(userId) {
+            if (!confirm('Are you sure you want to delete this user?')) return;
+
+            try {
+                const response = await fetch(`/api/users/${userId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showToast('User deleted successfully!');
+                    loadUsers();
+                } else {
+                    showToast('Error deleting user', true);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error deleting user', true);
+            }
+        }
+
+        // Add tab switching function
+        function switchTab(tab) {
+            const cardView = document.getElementById('cardView');
+            const tableView = document.getElementById('tableView');
+            const cardTab = document.getElementById('cardTab');
+            const tableTab = document.getElementById('tableTab');
+
+            if (tab === 'card') {
+                cardView.classList.remove('hidden');
+                tableView.classList.add('hidden');
+                cardTab.classList.add('tab-active');
+                tableTab.classList.remove('tab-active');
+            } else {
+                tableView.classList.remove('hidden');
+                cardView.classList.add('hidden');
+                tableTab.classList.add('tab-active');
+                cardTab.classList.remove('tab-active');
+            }
+        }
+
+        // Update loadUsers function
         async function loadUsers() {
             try {
                 const response = await fetch('/api/users');
                 const users = await response.json();
                 const userList = document.getElementById('userList');
+                const tableBody = document.getElementById('tableBody');
                 document.getElementById('userCount').textContent = `${users.length} Users`;
                 
+                // Update card view
                 userList.innerHTML = users.map(user => `
                     <div class="bg-gray-50 p-4 rounded-lg card-hover slide-in">
                         <div class="flex items-center justify-between">
@@ -135,11 +336,34 @@
                                 <h3 class="font-semibold text-gray-800">${user.name}</h3>
                                 <p class="text-gray-600 text-sm">${user.email}</p>
                             </div>
-                            <span class="text-xs text-gray-500">
-                                ${new Date(user.createdAt).toLocaleDateString()}
-                            </span>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-xs text-gray-500">
+                                    ${new Date(user.createdAt).toLocaleDateString()}
+                                </span>
+                                <button onclick="deleteUser('${user._id}')" 
+                                        class="text-red-500 hover:text-red-700 ml-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
+                `).join('');
+
+                // Update table view
+                tableBody.innerHTML = users.map(user => `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">${user.name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${user.email}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${new Date(user.createdAt).toLocaleDateString()}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <button onclick="deleteUser('${user._id}')" 
+                                    class="text-red-500 hover:text-red-700">
+                                Delete
+                            </button>
+                        </td>
+                    </tr>
                 `).join('');
             } catch (error) {
                 console.error('Error:', error);
@@ -148,6 +372,41 @@
 
         // Load users when page loads
         loadUsers();
+    
+    // Add these new functions
+    function showLoading() {
+        document.getElementById('loadingSpinner').classList.remove('hidden');
+    }
+
+    function hideLoading() {
+        document.getElementById('loadingSpinner').classList.add('hidden');
+    }
+
+    async function downloadPDF() {
+        try {
+            showLoading();
+            const response = await fetch('/api/users/download-pdf');
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'users.pdf';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+                showToast('PDF downloaded successfully!');
+            } else {
+                showToast('Error downloading PDF', true);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Error downloading PDF', true);
+        } finally {
+            hideLoading();
+        }
+    }
     </script>
 </body>
 </html>
